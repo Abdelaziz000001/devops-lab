@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# The Belt — test stage. Prints a readable checklist; exits non-zero on any FAIL,
+# Test stage. Prints a readable checklist; exits non-zero on any FAIL,
 # which turns the pipeline red and (once the wiring is fixed) blocks deploy.
 
 failures=0
@@ -48,7 +48,7 @@ fi
 
 echo "----------------------------------------"
 if [ "$failures" -gt 0 ]; then
-  echo "BELT IS RED ($failures check(s) failed) — deploy is blocked."
+  echo "RED: $failures check(s) failed — deploy is blocked."
   exit 1
 fi
-echo "BELT IS GREEN — all checks passed."
+echo "GREEN — all checks passed."
