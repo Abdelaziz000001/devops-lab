@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ingeniums.club</title>
+  <!-- load order matters: the watcher must be installed before any app code -->
+  <script src="monitor.js"></script>
+  <script src="config.js"></script>
+  <script src="app.js"></script>
+  <style>
+    body {
+      background: #0d1117;
+      color: #e6edf3;
+      font-family: system-ui, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      margin: 0;
+    }
+    h1 { font-size: 3rem; }
+    p  { color: #8b949e; }
+    footer { position: fixed; bottom: 1rem; }
+    footer a { color: #58a6ff; text-decoration: none; }
+  </style>
+</head>
+<body>
+  <h1>Check-in opens at 25:00</h1>
+  <p>deployed by the belt — fix me</p>
+  <footer><a href="status.html">📊 status</a></footer>
+</body>
+</html>

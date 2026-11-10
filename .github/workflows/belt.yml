@@ -1,0 +1,41 @@
+name: The Belt
+
+on: push
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: index.html exists and is non-empty
+        run: test -f index.html && test -s index.html
+      - name: test script is executable
+        run: test -x tests/check_site.sh
+
+  test:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: run the checklist
+        run: bash tests/check_site.sh
+
+  deploy:
+    runs-on: ubuntu-latest
+    # deploys to the world
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: .
+      - uses: actions/deploy-pages@v4

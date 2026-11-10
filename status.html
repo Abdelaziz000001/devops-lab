@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ingeniums.club — status</title>
+  <script src="monitor.js"></script>
+  <style>
+    body { background: #0d1117; color: #e6edf3; font-family: system-ui, sans-serif; margin: 0; padding: 2rem; max-width: 720px; }
+    h1 { font-size: 1.5rem; }
+    h2 { font-size: 1rem; color: #8b949e; text-transform: uppercase; letter-spacing: .12em; margin-top: 2.5rem; }
+    .panel { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 1rem 1.25rem; margin-top: 1rem; }
+    .big { font-size: 4rem; font-weight: 700; color: #f85149; }
+    canvas { width: 100%; background: #0d1117; border: 1px solid #30363d; border-radius: 6px; }
+    .mono { font-family: ui-monospace, monospace; }
+    .latest { color: #f85149; }
+    .note { color: #8b949e; font-size: .85rem; margin-top: .5rem; }
+    svg text { fill: #8b949e; font-family: ui-monospace, monospace; font-size: 11px; }
+  </style>
+</head>
+<body>
+  <h1>ingeniums.club — status dashboard</h1>
+
+  <h2>Live</h2>
+  <div class="panel">
+    <div>unhandled errors: <span class="big" id="errcount">0</span></div>
+  </div>
+  <div class="panel">
+    <div>errors per minute (last 10 min)</div>
+    <canvas id="bars" width="600" height="120"></canvas>
+  </div>
+  <div class="panel">
+    <div>response time — sampled every 2s (simulated: 120ms + 2ms per recorded error)</div>
+    <canvas id="curve" width="600" height="160"></canvas>
+  </div>
+  <div class="panel latest">
+    <div><b>latest error</b></div>
+    <div class="mono" id="latest">— none recorded yet —</div>
+  </div>
+
+  <h2>History — yesterday</h2>
+  <div class="panel">
+    <svg viewBox="0 0 640 240" width="100%" role="img" aria-label="response time yesterday: flat until 11:58, then climbing">
+      <!-- axes -->
+      <line x1="50" y1="20" x2="50" y2="190" stroke="#30363d"/>
+      <line x1="50" y1="190" x2="620" y2="190" stroke="#30363d"/>
+      <!-- gridlines: 0 / 2500 / 5000 ms -->
+      <line x1="50" y1="110" x2="620" y2="110" stroke="#21262d"/>
+      <line x1="50" y1="30"  x2="620" y2="30"  stroke="#21262d"/>
+      <text x="14" y="194">0</text>
+      <text x="14" y="114">2500ms</text>
+      <text x="14" y="34">5000ms</text>
+      <!-- time labels: 08:00 12:00 16:00 18:00 -->
+      <text x="50"  y="210">08:00</text>
+      <text x="278" y="210">12:00</text>
+      <text x="506" y="210">16:00</text>
+      <text x="596" y="210">18:00</text>
+      <!-- the curve: flat ~120ms until 11:58, then a smooth climb to ~4800ms -->
+      <path d="M50,186 L278,186 C360,186 430,150 500,100 C560,60 600,42 620,36"
+            fill="none" stroke="#f85149" stroke-width="2.5"/>
+      <!-- the culprit marker -->
+      <line x1="278" y1="20" x2="278" y2="190" stroke="#8b949e" stroke-dasharray="4 4"/>
+      <circle cx="278" cy="186" r="4" fill="#f85149"/>
+      <text x="286" y="32" fill="#e6edf3">11:58 — hotfix shipped</text>
+    </svg>
+    <div class="note">simulated snapshot</div>
+  </div>
+
+  <script>
+    function errors() {
+      try { return JSON.parse(localStorage.getItem(KEY) || "[]"); } catch (e) { return []; }
+    }
+
+    const curve = [];
+
+    function drawCurve() {
+      const c = document.getElementById("curve"), g = c.getContext("2d");
+      g.clearRect(0, 0, c.width, c.height);
+      const max = Math.max(200, ...curve);
+      g.strokeStyle = "#58a6ff"; g.lineWidth = 2; g.beginPath();
+      curve.forEach(function (v, i) {
+        const px = 10 + (i / 59) * (c.width - 20);
+        const py = c.height - 10 - (v / max) * (c.height - 30);
+        if (i === 0) g.moveTo(px, py); else g.lineTo(px, py);
+      });
+      g.stroke();
+      g.fillStyle = "#8b949e"; g.font = "11px monospace";
+      g.fillText(max + "ms", c.width - 70, 14);
+      g.fillText("120ms", c.width - 70, c.height - 8);
+    }
+
+    function drawBars() {
+      const c = document.getElementById("bars"), g = c.getContext("2d");
+      g.clearRect(0, 0, c.width, c.height);
+      const now = Date.now(), buckets = [0,0,0,0,0,0,0,0,0,0];
+      errors().forEach(function (e) {
+        const m = Math.floor((now - e.ts) / 60000);
+        if (m >= 0 && m < 10) buckets[9 - m]++;
+      });
+      const max = Math.max(1, ...buckets);
+      buckets.forEach(function (v, i) {
+        const h = (v / max) * (c.height - 24);
+        g.fillStyle = "#f85149";
+        g.fillRect(24 + i * 58, c.height - 14 - h, 42, h);
+        g.fillStyle = "#8b949e"; g.font = "10px monospace";
+        g.fillText((9 - i) + "m", 30 + i * 58, c.height - 3);
+      });
+    }
+
+    function drawLatest() {
+      const list = errors(), el = document.getElementById("latest");
+      if (!list.length) { el.textContent = "— none recorded yet —"; return; }
+      const e = list[list.length - 1];
+      const file = String(e.src).split("/").pop();
+      el.textContent = e.msg + " @ " + file + ":" + e.line + " (" + new Date(e.ts).toLocaleTimeString() + ")";
+    }
+
+    function sample() {
+      const n = errors().length;
+      curve.push(120 + n * 2);
+      if (curve.length > 60) curve.shift();
+      document.getElementById("errcount").textContent = n;
+      drawCurve(); drawBars(); drawLatest();
+    }
+
+    sample();
+    setInterval(sample, 2000);
+  </script>
+</body>
+</html>
