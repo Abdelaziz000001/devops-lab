@@ -1,6 +1,8 @@
 name: workflow
 
-on: push
+on:
+  push
+  workflow_dispatch   # adds a manual "Run workflow" button in the Actions tab
 
 permissions:
   contents: read
